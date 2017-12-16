@@ -8,7 +8,7 @@ author: nicolas@lehuen.com
 description: JavaScript support for Nukkit.
 # website: https://github.com/nlehuen/JavaScraft
 commands:
-  eval0ds:
+  eval:
     description: Evaluate JavaScript expression
     usage: "/eval <JavaScript expression>"
     permission: javascraft.command.eval

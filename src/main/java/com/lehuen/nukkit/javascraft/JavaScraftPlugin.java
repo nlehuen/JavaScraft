@@ -26,25 +26,21 @@ public class JavaScraftPlugin extends PluginBase {
     }
 
     @Override
-    public void onEnable() {
-        getServer().getCommandMap().register("javascraft", new Command("eval") {
-            @Override
-            public boolean execute(CommandSender commandSender, String command, String[] args) {
-                if (args == null) {
-                    return false;
-                }
-                final String expression = String.join(" ", args);
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        switch(command.getName()) {
+            case "eval":
                 try {
+                    final String expression = String.join(" ", args);
                     final Object result = engine.eval(expression);
                     if (result != null) {
-                        getServer().broadcastMessage(result.toString());
+                        sender.sendMessage(result.toString());
                     }
                     return true;
                 } catch (ScriptException e) {
-                    getServer().broadcastMessage(e.getMessage());
+                    sender.sendMessage(e.getMessage());
                     return false;
                 }
-            }
-        });
+        }
+        return false;
     }
 }
