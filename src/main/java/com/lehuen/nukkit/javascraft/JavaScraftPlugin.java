@@ -2,9 +2,11 @@ package com.lehuen.nukkit.javascraft;
 
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.level.Level;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
 
+import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -31,7 +33,16 @@ public class JavaScraftPlugin extends PluginBase {
             case "eval":
                 try {
                     final String expression = String.join(" ", args);
-                    final Object result = engine.eval(expression);
+                    Bindings bindings = engine.createBindings();
+                    bindings.put("test", 1);
+                    for (Level level : getServer().getLevels().values()) {
+                        bindings.put(level.getName(), level);
+                    }
+                    bindings.put("level", getServer().getDefaultLevel());
+                    if (sender.isPlayer()) {
+                        bindings.put("player", sender);
+                    }
+                    final Object result = engine.eval(expression, bindings);
                     if (result != null) {
                         sender.sendMessage(result.toString());
                     }
