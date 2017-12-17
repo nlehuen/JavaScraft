@@ -29,6 +29,7 @@ public class JavaScraftPlugin extends PluginBase {
             getLogger().error("No JavaScript engine was found!");
             return;
         }
+
         getLogger().info(TextFormat.WHITE + "Javascript engine: " + engine.getFactory().getEngineName() + " " + engine.getFactory().getEngineVersion());
 
         // We inject the server in the global scope.
@@ -37,7 +38,7 @@ public class JavaScraftPlugin extends PluginBase {
         engine.put("server", getServer());
 
         // Initialize the engine from init.js
-        try (Reader reader = new InputStreamReader(getResource("init.js"))) {
+        try (Reader reader = new InputStreamReader(getResource("scripts/init.js"))) {
             engine.eval(reader);
         } catch (Exception e) {
             getLogger().error("Could not load init.js", e);
@@ -50,29 +51,7 @@ public class JavaScraftPlugin extends PluginBase {
             InetSocketAddress address = new InetSocketAddress(8080);
             httpServer = HttpServer.create(address, 8);
             httpServer.setExecutor(ForkJoinPool.commonPool());
-            httpServer.createContext("/", e -> {
-                String path = e.getRequestURI().getPath().substring(1);
-                if (path.equals("")) {
-                    path = "index.html";
-                }
-                final String contentType = getMimeType(path);
-                e.getResponseHeaders().add("Content-Type", contentType);
-                try (InputStream is = getResource(path)) {
-                    if (is == null) {
-                        e.sendResponseHeaders(404, -1);
-                        getLogger().error("HTTP Server 404 Not Found: '" + path + "'");
-                    } else {
-                        e.sendResponseHeaders(200, 0);
-                        OutputStream os = e.getResponseBody();
-                        ByteStreams.copy(is, os);
-                        os.flush();
-                        getLogger().info("HTTP Server 200 '" + path + "' (" + contentType + ")");
-                    }
-                } catch (Exception err) {
-                    getLogger().error("HTTP Server", err);
-                }
-                e.close();
-            });
+            httpServer.createContext("/", new FileHandler());
             httpServer.start();
             getLogger().info("Listening on " + TextFormat.GREEN + "http://localhost:" + address.getPort());
         } catch (IOException e) {
@@ -80,20 +59,53 @@ public class JavaScraftPlugin extends PluginBase {
         }
     }
 
-    private String getMimeType(String path) {
-        if (path.endsWith(".html")) {
-            return "text/html";
-        } else if (path.endsWith(".js")) {
-            return "text/javascript";
-        } else {
-            return "application/octet-stream";
+    @Override
+    public void onDisable() {
+        if (httpServer != null) {
+            getLogger().info("Stopping HTTP server");
+            httpServer.stop(0);
         }
     }
 
-    @Override
-    public void onDisable() {
-        getLogger().info("Stopping HTTP server");
-        httpServer.stop(0);
+    private class FileHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange e) {
+            final String path = getSanitizedPath(e);
+            final String contentType = getMimeType(path);
+            e.getResponseHeaders().add("Content-Type", contentType);
+            try (InputStream is = getResource(path)) {
+                if (is == null) {
+                    e.sendResponseHeaders(404, -1);
+                } else {
+                    e.sendResponseHeaders(200, 0);
+                    OutputStream os = e.getResponseBody();
+                    ByteStreams.copy(is, os);
+                    os.flush();
+                }
+            } catch (Exception err) {
+                getLogger().error("HTTP Server", err);
+            }
+            e.close();
+        }
+
+        private String getSanitizedPath(HttpExchange e) {
+            String path = e.getRequestURI().getPath().substring(1);
+            if (path.equals("")) {
+                path = "index.html";
+            }
+            path = path.replace("../", "");
+            return "web/" + path;
+        }
+
+        private String getMimeType(String path) {
+            if (path.endsWith(".html")) {
+                return "text/html";
+            } else if (path.endsWith(".js")) {
+                return "text/javascript";
+            } else {
+                return "application/octet-stream";
+            }
+        }
     }
 
     @Override
