@@ -1,5 +1,45 @@
+<!DOCTYPE html>
 <html>
+<head>
+    <meta charset="utf-8">
+    <title>Blockly Demo: Resizable Blockly (Part 2)</title>
+    <script src="blockly/blockly_compressed.js"></script>
+    <script src="blockly/blocks_compressed.js"></script>
+    <script src="blockly/javascript_compressed.js"></script>
+    <script src="blockly/msg/js/en.js"></script>
+    <style type="text/css">
+    body {
+      font-family: sans-serif;
+    }
+    </style>
+</head>
 <body>
-<p>Hello, JavaScraft!</p>
+
+<h1>JavaScraft</h1>
+<div id="blocklyDiv" style="height: 480px; width: 100%;"></div>
+<textarea id="blocklyCode" cols="50" rows="25">Your code here...</textarea>
+
+<xml id="toolbox" style="display: none">
+    <block type="controls_if"></block>
+    <block type="logic_compare"></block>
+    <block type="controls_repeat_ext"></block>
+    <block type="math_number"></block>
+    <block type="math_arithmetic"></block>
+    <block type="text"></block>
+    <block type="text_print"></block>
+</xml>
+
+<script>
+    var workspace = Blockly.inject('blocklyDiv',
+        {toolbox: document.getElementById('toolbox')});
+    workspace.addChangeListener(function(event) {
+      var code = Blockly.JavaScript.workspaceToCode(workspace);
+      document.getElementById('blocklyCode').value = code;
+    });
+
+
+
+</script>
+
 </body>
 </html>
