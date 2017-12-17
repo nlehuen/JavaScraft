@@ -162,16 +162,16 @@ public class JavaScraftPlugin extends PluginBase {
                     try (Writer writer = new OutputStreamWriter(e.getResponseBody())) {
                         writer.write(result.toString());
                     }
-                    e.getResponseBody().flush();
                 } else {
                     e.sendResponseHeaders(204, -1);
                 }
                 e.close();
             } catch (ScriptException err) {
+                e.getResponseHeaders().add("Content-Type", "text/plain");
+                e.sendResponseHeaders(500, 0);
                 try (PrintWriter writer = new PrintWriter(e.getResponseBody())) {
                     err.printStackTrace(writer);
                 }
-                e.getResponseBody().flush();
                 e.close();
             }
         }
