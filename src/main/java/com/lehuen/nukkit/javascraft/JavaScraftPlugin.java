@@ -1,15 +1,17 @@
 package com.lehuen.nukkit.javascraft;
 
+import cn.nukkit.Player;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
-import cn.nukkit.level.Level;
+import cn.nukkit.lang.TextContainer;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
 
-import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 
 public class JavaScraftPlugin extends PluginBase {
     private ScriptEngine engine;
@@ -17,41 +19,61 @@ public class JavaScraftPlugin extends PluginBase {
     @Override
     public void onLoad() {
         ScriptEngineManager manager = new ScriptEngineManager();
-        // We inject the server in the global scope.
-        manager.put("server", getServer());
         engine = manager.getEngineByMimeType("text/javascript");
         if (engine == null) {
             getLogger().error("No JavaScript engine was found!");
-        } else {
-            getLogger().info(TextFormat.WHITE + "Javascript engine: " + engine.getFactory().getEngineName() + " " + engine.getFactory().getEngineVersion());
+            return;
+        }
+        getLogger().info(TextFormat.WHITE + "Javascript engine: " + engine.getFactory().getEngineName() + " " + engine.getFactory().getEngineVersion());
+
+        // We inject the server in the global scope.
+        // CAUTION: this allows anyone that has javascraft.command.eval permission to do nasty things, such as
+        // "/eval server.shutdown()".
+        engine.put("server", getServer());
+
+        // Initialize the engine from init.js
+        try (Reader reader = new InputStreamReader(getResource("init.js"))) {
+            engine.eval(reader);
+        } catch (Exception e) {
+            getLogger().error("Could not load init.js", e);
         }
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        switch(command.getName()) {
+        if (engine == null) {
+            sender.sendMessage(new TextContainer("No JavaScript engine was found"));
+            return false;
+        }
+        switch (command.getName()) {
             case "eval":
-                try {
-                    final String expression = String.join(" ", args);
-                    Bindings bindings = engine.createBindings();
-                    bindings.put("test", 1);
-                    for (Level level : getServer().getLevels().values()) {
-                        bindings.put(level.getName(), level);
-                    }
-                    bindings.put("level", getServer().getDefaultLevel());
-                    if (sender.isPlayer()) {
-                        bindings.put("player", sender);
-                    }
-                    final Object result = engine.eval(expression, bindings);
-                    if (result != null) {
-                        sender.sendMessage(result.toString());
-                    }
-                    return true;
-                } catch (ScriptException e) {
-                    sender.sendMessage(e.getMessage());
-                    return false;
-                }
+                return eval(sender, args);
         }
         return false;
+    }
+
+    private synchronized boolean eval(CommandSender sender, String[] args) {
+        final String expression = String.join(" ", args);
+        Object result;
+        if (sender.isPlayer()) {
+            Player player = (Player) sender;
+            engine.put("me", player);
+            engine.put("level", player.getPosition().level);
+            engine.put("pos", player.getPosition());
+        } else {
+            engine.put("me", null);
+            engine.put("level", getServer().getDefaultLevel());
+            engine.put("pos", null);
+        }
+        try {
+            result = engine.eval(expression);
+        } catch (ScriptException e) {
+            sender.sendMessage(e.getMessage());
+            return false;
+        }
+        if (result != null) {
+            sender.sendMessage(result.toString());
+        }
+        return true;
     }
 }
