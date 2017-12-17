@@ -3,7 +3,6 @@ package com.lehuen.nukkit.javascraft;
 import cn.nukkit.Player;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
-import cn.nukkit.lang.TextContainer;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
 
@@ -42,7 +41,7 @@ public class JavaScraftPlugin extends PluginBase {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (engine == null) {
-            sender.sendMessage(new TextContainer("No JavaScript engine was found"));
+            sender.sendMessage("No JavaScript engine was found");
             return false;
         }
         switch (command.getName()) {
