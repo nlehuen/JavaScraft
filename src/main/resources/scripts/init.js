@@ -12,3 +12,14 @@ function b(name) {
 function broadcast(message) { server.broadcastMessage(message); }
 
 function move(player, x, y, z) { player.setPosition(new Vector3(x, y, z)); }
+
+function slab(radius, matter, player) {
+  var w = b(matter || 'STONE');
+  var p = (player || me).getPosition();
+  radius = radius || 5;
+  for (var i=1-radius; i<radius; ++i) {
+    for (var j=1-radius; j<radius; ++j) {
+      level.setBlock(v(p.x+i, p.y-1, p.z+j), w);
+    }
+  }
+}
