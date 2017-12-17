@@ -6,6 +6,7 @@ import cn.nukkit.command.CommandSender;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -52,6 +53,7 @@ public class JavaScraftPlugin extends PluginBase {
             httpServer = HttpServer.create(address, 8);
             httpServer.setExecutor(ForkJoinPool.commonPool());
             httpServer.createContext("/", new FileHandler());
+            httpServer.createContext("/run", new RunHandler());
             httpServer.start();
             getLogger().info("Listening on " + TextFormat.GREEN + "http://localhost:" + address.getPort());
         } catch (IOException e) {
@@ -116,15 +118,22 @@ public class JavaScraftPlugin extends PluginBase {
         }
         switch (command.getName()) {
             case "eval":
-                return eval(sender, args);
+                try {
+                    Object result = eval(sender, String.join(" ", args));
+                    if (result != null) {
+                        sender.sendMessage(result.toString());
+                    }
+                    return true;
+                } catch (ScriptException e) {
+                    sender.sendMessage(e.getMessage());
+                    return false;
+                }
         }
         return false;
     }
 
-    private synchronized boolean eval(CommandSender sender, String[] args) {
-        final String expression = String.join(" ", args);
-        Object result;
-        if (sender.isPlayer()) {
+    private synchronized Object eval(CommandSender sender, String expression) throws ScriptException {
+        if (sender != null && sender.isPlayer()) {
             Player player = (Player) sender;
             engine.put("me", player);
             engine.put("level", player.getPosition().level);
@@ -134,15 +143,37 @@ public class JavaScraftPlugin extends PluginBase {
             engine.put("level", getServer().getDefaultLevel());
             engine.put("pos", null);
         }
-        try {
-            result = engine.eval(expression);
-        } catch (ScriptException e) {
-            sender.sendMessage(e.getMessage());
-            return false;
+        return engine.eval(expression);
+    }
+
+    private class RunHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange e) throws IOException {
+            String input;
+            try (Reader reader = new InputStreamReader(e.getRequestBody())) {
+                input = CharStreams.toString(reader);
+            }
+            getLogger().info("Run:\n" + input);
+            try {
+                Object result = eval(null, input);
+                if (result != null) {
+                    e.getResponseHeaders().add("Content-Type", "text/plain");
+                    e.sendResponseHeaders(200, 0);
+                    try (Writer writer = new OutputStreamWriter(e.getResponseBody())) {
+                        writer.write(result.toString());
+                    }
+                    e.getResponseBody().flush();
+                } else {
+                    e.sendResponseHeaders(204, -1);
+                }
+                e.close();
+            } catch (ScriptException err) {
+                try (PrintWriter writer = new PrintWriter(e.getResponseBody())) {
+                    err.printStackTrace(writer);
+                }
+                e.getResponseBody().flush();
+                e.close();
+            }
         }
-        if (result != null) {
-            sender.sendMessage(result.toString());
-        }
-        return true;
     }
 }

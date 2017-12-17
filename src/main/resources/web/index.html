@@ -16,8 +16,9 @@
 <body>
 
 <h1>JavaScraft</h1>
+<button id="run">Run</button>
 <div id="blocklyDiv" style="height: 480px; width: 100%;"></div>
-<textarea id="blocklyCode" cols="50" rows="25">Your code here...</textarea>
+<textarea id="blocklyCode" style="height: 480px; width: 100%;">Your code here...</textarea>
 
 <xml id="toolbox" style="display: none">
     <block type="controls_if"></block>
@@ -31,14 +32,28 @@
 
 <script>
     var workspace = Blockly.inject('blocklyDiv',
-        {toolbox: document.getElementById('toolbox')});
+        {media: 'blockly/media/', toolbox: document.getElementById('toolbox')});
     workspace.addChangeListener(function(event) {
       var code = Blockly.JavaScript.workspaceToCode(workspace);
       document.getElementById('blocklyCode').value = code;
     });
-
-
-
+    var runButton = document.getElementById('run');
+    runButton.addEventListener('click', function() {
+       runButton.disabled = true;
+       var code = document.getElementById('blocklyCode').value;
+       var XHR = new XMLHttpRequest();
+       XHR.addEventListener('load', function(event) {
+         runButton.disabled = false;
+         alert(XHR.response);
+       });
+       XHR.addEventListener('error', function(event) {
+         runButton.disabled = false;
+         alert('Could not run!\n' + XHR.response);
+       });
+       XHR.open('POST', '/run');
+       XHR.setRequestHeader('Content-Type', 'text/javascript');
+       XHR.send(code);
+    });
 </script>
 
 </body>
