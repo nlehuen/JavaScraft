@@ -11,6 +11,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -28,6 +29,11 @@ public class JavaScraftPlugin extends PluginBase {
         engine = manager.getEngineByMimeType("text/javascript");
         if (engine == null) {
             getLogger().error("No JavaScript engine was found!");
+            return;
+        }
+        if (!(engine instanceof Invocable)) {
+            getLogger().error("JavaScript engine does not support the Invocable API!");
+            engine = null;
             return;
         }
 
