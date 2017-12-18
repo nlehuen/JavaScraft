@@ -34,8 +34,8 @@ public class JavaScraftPlugin extends PluginBase {
         getLogger().info(TextFormat.WHITE + "Javascript engine: " + engine.getFactory().getEngineName() + " " + engine.getFactory().getEngineVersion());
 
         // We inject the server in the global scope.
-        // CAUTION: this allows anyone that has javascraft.command.eval permission to do nasty things, such as
-        // "/eval server.shutdown()".
+        // CAUTION: this allows anyone that has javascraft.command.js permission to do nasty things, such as
+        // "/js server.shutdown()".
         engine.put("server", getServer());
 
         // Initialize the engine from init.js
@@ -117,7 +117,7 @@ public class JavaScraftPlugin extends PluginBase {
             return false;
         }
         switch (command.getName()) {
-            case "eval":
+            case "js":
                 try {
                     Object result = eval(sender, String.join(" ", args));
                     if (result != null) {
