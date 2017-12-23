@@ -77,6 +77,11 @@ public class JavaScraftPlugin extends PluginBase implements Listener {
                 getLogger().error("Could not register events", e);
             }
         }
+        for (final Player p : getServer().getOnlinePlayers().values()) {
+            if (engine.get(p.getName()) == null) {
+                engine.put(p.getName(), p);
+            }
+        }
     }
 
     @Override
@@ -153,7 +158,9 @@ public class JavaScraftPlugin extends PluginBase implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEvent(final PlayerLoginEvent e) {
         // Define the player as a global variable.
-        engine.put(e.getPlayer().getName(), e.getPlayer());
+        if (engine.get(e.getPlayer().getName()) == null) {
+            engine.put(e.getPlayer().getName(), e.getPlayer());
+        }
 
         final String functionName = "on" + e.getClass().getSimpleName();
         try {
