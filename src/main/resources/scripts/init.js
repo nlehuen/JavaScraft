@@ -22,7 +22,7 @@ function applyDefaults(params, defaults) {
   params.player = params.player || me;
   params.level = params.level || level;
   params.pos = params.pos || params.player.position;
-  params.matter = Block.get(Block[params.matter || 'STONE']);
+  params.matter = Block.get(Block[params.matter || 'GLASS']);
   params.inside = Block.get(Block[params.inside || 'AIR']);
   if (defaults) {
     for(var k in defaults) {
@@ -51,6 +51,21 @@ function box(params) {
         var b = (k == -1 || k == params.h - 1 || i == -params.w || i == params.w || j == -params.d || j == params.d) ?
                 params.matter : params.inside;
         params.level.setBlock(v(params.pos.x+i, params.pos.y+k, params.pos.z+j), b);
+      }
+    }
+  }
+}
+
+function sphere(params) {
+  params = applyDefaults(params, {r:5});
+  for (var i=-params.r; i<=params.r; ++i) {
+    for (var j=-params.r; j<=params.r; ++j) {
+      for (var k=-params.r; k<params.r; ++k) {
+        var d = Math.sqrt(i*i + j*j + k*k);
+        if (d <= params.r) {
+            var b = (params.r - d) < 1 ? params.matter : params.inside;
+            params.level.setBlock(v(params.pos.x+i, params.pos.y+params.r+k-1, params.pos.z+j), b);
+        }
       }
     }
   }
