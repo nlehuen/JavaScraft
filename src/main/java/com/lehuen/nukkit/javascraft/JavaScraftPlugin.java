@@ -3,6 +3,11 @@ package com.lehuen.nukkit.javascraft;
 import cn.nukkit.Player;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.event.EventHandler;
+import cn.nukkit.event.EventPriority;
+import cn.nukkit.event.Listener;
+import cn.nukkit.event.player.PlayerLoginEvent;
+import cn.nukkit.event.player.PlayerQuitEvent;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.TextFormat;
 import com.google.common.io.ByteStreams;
@@ -19,7 +24,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ForkJoinPool;
 
-public class JavaScraftPlugin extends PluginBase {
+public class JavaScraftPlugin extends PluginBase implements Listener {
     private ScriptEngine engine;
     private HttpServer httpServer;
 
@@ -64,6 +69,13 @@ public class JavaScraftPlugin extends PluginBase {
             getLogger().info("Listening on " + TextFormat.GREEN + "http://localhost:" + address.getPort());
         } catch (final IOException e) {
             getLogger().error("Cannot start HTTP server", e);
+        }
+        if (engine != null && engine instanceof Invocable) {
+            try {
+                getServer().getPluginManager().registerEvents(this, this);
+            } catch (final Exception e) {
+                getLogger().error("Could not register events", e);
+            }
         }
     }
 
@@ -136,6 +148,34 @@ public class JavaScraftPlugin extends PluginBase {
                 }
         }
         return false;
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEvent(final PlayerLoginEvent e) {
+        // Define the player as a global variable.
+        engine.put(e.getPlayer().getName(), e.getPlayer());
+
+        final String functionName = "on" + e.getClass().getSimpleName();
+        try {
+            ((Invocable) engine).invokeFunction(functionName, e);
+        } catch (final ScriptException se) {
+            getLogger().error("Error while calling " + functionName, se);
+            se.printStackTrace();
+        } catch (final NoSuchMethodException nsme) {
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEvent(final PlayerQuitEvent e) {
+        final String functionName = "on" + e.getClass().getSimpleName();
+        try {
+            ((Invocable) engine).invokeFunction(functionName, e);
+        } catch (final ScriptException se) {
+            getLogger().error("Error while calling " + functionName, se);
+            se.printStackTrace();
+        } catch (final NoSuchMethodException nsme) {
+        }
+        engine.put(e.getPlayer().getName(), null);
     }
 
     private synchronized Object eval(final CommandSender sender, final String expression) throws ScriptException {
