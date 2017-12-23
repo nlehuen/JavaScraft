@@ -25,7 +25,7 @@ public class JavaScraftPlugin extends PluginBase {
 
     @Override
     public void onLoad() {
-        ScriptEngineManager manager = new ScriptEngineManager();
+        final ScriptEngineManager manager = new ScriptEngineManager();
         engine = manager.getEngineByMimeType("text/javascript");
         if (engine == null) {
             getLogger().error("No JavaScript engine was found!");
@@ -45,9 +45,9 @@ public class JavaScraftPlugin extends PluginBase {
         engine.put("server", getServer());
 
         // Initialize the engine from init.js
-        try (Reader reader = new InputStreamReader(getResource("scripts/init.js"))) {
+        try (final Reader reader = new InputStreamReader(getResource("scripts/init.js"))) {
             engine.eval(reader);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Could not load init.js", e);
         }
     }
@@ -55,14 +55,14 @@ public class JavaScraftPlugin extends PluginBase {
     @Override
     public void onEnable() {
         try {
-            InetSocketAddress address = new InetSocketAddress(8080);
+            final InetSocketAddress address = new InetSocketAddress(8080);
             httpServer = HttpServer.create(address, 8);
             httpServer.setExecutor(ForkJoinPool.commonPool());
             httpServer.createContext("/", new FileHandler());
             httpServer.createContext("/run", new RunHandler());
             httpServer.start();
             getLogger().info("Listening on " + TextFormat.GREEN + "http://localhost:" + address.getPort());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Cannot start HTTP server", e);
         }
     }
@@ -77,26 +77,26 @@ public class JavaScraftPlugin extends PluginBase {
 
     private class FileHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange e) {
+        public void handle(final HttpExchange e) {
             final String path = getSanitizedPath(e);
             final String contentType = getMimeType(path);
             e.getResponseHeaders().add("Content-Type", contentType);
-            try (InputStream is = getResource(path)) {
+            try (final InputStream is = getResource(path)) {
                 if (is == null) {
                     e.sendResponseHeaders(404, -1);
                 } else {
                     e.sendResponseHeaders(200, 0);
-                    OutputStream os = e.getResponseBody();
+                    final OutputStream os = e.getResponseBody();
                     ByteStreams.copy(is, os);
                     os.flush();
                 }
-            } catch (Exception err) {
+            } catch (final Exception err) {
                 getLogger().error("HTTP Server", err);
             }
             e.close();
         }
 
-        private String getSanitizedPath(HttpExchange e) {
+        private String getSanitizedPath(final HttpExchange e) {
             String path = e.getRequestURI().getPath().substring(1);
             if (path.equals("")) {
                 path = "index.html";
@@ -105,7 +105,7 @@ public class JavaScraftPlugin extends PluginBase {
             return "web/" + path;
         }
 
-        private String getMimeType(String path) {
+        private String getMimeType(final String path) {
             if (path.endsWith(".html")) {
                 return "text/html";
             } else if (path.endsWith(".js")) {
@@ -117,7 +117,7 @@ public class JavaScraftPlugin extends PluginBase {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
         if (engine == null) {
             sender.sendMessage("No JavaScript engine was found");
             return false;
@@ -125,12 +125,12 @@ public class JavaScraftPlugin extends PluginBase {
         switch (command.getName()) {
             case "js":
                 try {
-                    Object result = eval(sender, String.join(" ", args));
+                    final Object result = eval(sender, String.join(" ", args));
                     if (result != null) {
                         sender.sendMessage(result.toString());
                     }
                     return true;
-                } catch (ScriptException e) {
+                } catch (final ScriptException e) {
                     sender.sendMessage(e.getMessage());
                     return false;
                 }
@@ -138,9 +138,9 @@ public class JavaScraftPlugin extends PluginBase {
         return false;
     }
 
-    private synchronized Object eval(CommandSender sender, String expression) throws ScriptException {
+    private synchronized Object eval(final CommandSender sender, final String expression) throws ScriptException {
         if (sender != null && sender.isPlayer()) {
-            Player player = (Player) sender;
+            final Player player = (Player) sender;
             engine.put("me", player);
             engine.put("level", player.getPosition().level);
             engine.put("pos", player.getPosition());
@@ -154,14 +154,14 @@ public class JavaScraftPlugin extends PluginBase {
 
     private class RunHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange e) throws IOException {
-            String input;
+        public void handle(final HttpExchange e) throws IOException {
+            final String input;
             try (Reader reader = new InputStreamReader(e.getRequestBody())) {
                 input = CharStreams.toString(reader);
             }
             getLogger().info("Run:\n" + input);
             try {
-                Object result = eval(null, input);
+                final Object result = eval(null, input);
                 if (result != null) {
                     e.getResponseHeaders().add("Content-Type", "text/plain");
                     e.sendResponseHeaders(200, 0);
@@ -172,7 +172,7 @@ public class JavaScraftPlugin extends PluginBase {
                     e.sendResponseHeaders(204, -1);
                 }
                 e.close();
-            } catch (ScriptException err) {
+            } catch (final ScriptException err) {
                 e.getResponseHeaders().add("Content-Type", "text/plain");
                 e.sendResponseHeaders(500, 0);
                 try (PrintWriter writer = new PrintWriter(e.getResponseBody())) {
