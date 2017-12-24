@@ -89,3 +89,12 @@ function tower(params) {
 function onPlayerLoginEvent(ple) {
   server.broadcastMessage('Welcome to JavaScraft, ' + ple.player.name);
 }
+
+function onBlockPlaceEvent(bpe) {
+  // Spawn a sphere of leaves whenever a player stack two Oak Wood blocks
+  if (bpe.block.id == Block.WOOD
+      && bpe.blockAgainst.id == Block.WOOD
+      && bpe.block.y == bpe.blockAgainst.y + 1) {
+      sphere({pos:v(bpe.block.x, bpe.block.y + 2, bpe.block.z), matter:'LEAVES'});
+  }
+}

@@ -3,9 +3,12 @@ package com.lehuen.nukkit.javascraft;
 import cn.nukkit.Player;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.event.Event;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.Listener;
+import cn.nukkit.event.block.BlockBreakEvent;
+import cn.nukkit.event.block.BlockPlaceEvent;
 import cn.nukkit.event.player.PlayerLoginEvent;
 import cn.nukkit.event.player.PlayerQuitEvent;
 import cn.nukkit.plugin.PluginBase;
@@ -44,10 +47,11 @@ public class JavaScraftPlugin extends PluginBase implements Listener {
 
         getLogger().info(TextFormat.WHITE + "Javascript engine: " + engine.getFactory().getEngineName() + " " + engine.getFactory().getEngineVersion());
 
-        // We inject the server in the global scope.
+        // We inject the server and plugin in the global scope.
         // CAUTION: this allows anyone that has javascraft.command.js permission to do nasty things, such as
         // "/js server.shutdown()".
         engine.put("server", getServer());
+        engine.put("plugin", this);
 
         // Initialize the engine from init.js
         try (final Reader reader = new InputStreamReader(getResource("scripts/init.js"))) {
@@ -161,28 +165,35 @@ public class JavaScraftPlugin extends PluginBase implements Listener {
         if (engine.get(e.getPlayer().getName()) == null) {
             engine.put(e.getPlayer().getName(), e.getPlayer());
         }
-
-        final String functionName = "on" + e.getClass().getSimpleName();
-        try {
-            ((Invocable) engine).invokeFunction(functionName, e);
-        } catch (final ScriptException se) {
-            getLogger().error("Error while calling " + functionName, se);
-            se.printStackTrace();
-        } catch (final NoSuchMethodException nsme) {
-        }
+        callEventHandler(e, "onPlayerLoginEvent");
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEvent(final PlayerQuitEvent e) {
-        final String functionName = "on" + e.getClass().getSimpleName();
+        callEventHandler(e, "onPlayerQuitEvent");
+        engine.put(e.getPlayer().getName(), null);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEvent(final BlockBreakEvent e) {
+        callEventHandler(e, "onBlockBreakEvent");
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEvent(final BlockPlaceEvent e) {
+        callEventHandler(e, "onBlockPlaceEvent");
+    }
+
+    private synchronized void callEventHandler(final Event e, final String functionName) {
+        if (engine.get(functionName) == null) {
+            return;
+        }
         try {
             ((Invocable) engine).invokeFunction(functionName, e);
-        } catch (final ScriptException se) {
+        } catch (final Exception se) {
             getLogger().error("Error while calling " + functionName, se);
             se.printStackTrace();
-        } catch (final NoSuchMethodException nsme) {
         }
-        engine.put(e.getPlayer().getName(), null);
     }
 
     private synchronized Object eval(final CommandSender sender, final String expression) throws ScriptException {
