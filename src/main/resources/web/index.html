@@ -7,7 +7,6 @@
     <script src="blockly/blocks_compressed.js"></script>
     <script src="blockly/javascript_compressed.js"></script>
     <script src="blockly/msg/js/en.js"></script>
-    <script src="player.js"></script>
     <style type="text/css">
     body {
       font-family: sans-serif;
@@ -35,8 +34,6 @@
 </xml>
 
 <script>
-    Player.render();
-
     var workspace = Blockly.inject('blocklyDiv',
         {media: 'blockly/media/', toolbox: document.getElementById('toolbox')});
     workspace.addChangeListener(function(event) {
