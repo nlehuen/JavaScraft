@@ -7,6 +7,7 @@
     <script src="blockly/blocks_compressed.js"></script>
     <script src="blockly/javascript_compressed.js"></script>
     <script src="blockly/msg/js/en.js"></script>
+    <script src="player.js"></script>
     <style type="text/css">
     body {
       font-family: sans-serif;
@@ -33,21 +34,9 @@
     <block type="text_print"></block>
 </xml>
 
-<div id="pilotHead" style="
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 50px;
-    background-color: #333;
-    border-top-left-radius: 50px;
-    border-top-right-radius: 50px;
-    z-index: 1000;
-    pointer-events: none;
-"></div>
-
 <script>
+    Player.render();
+
     var workspace = Blockly.inject('blocklyDiv',
         {media: 'blockly/media/', toolbox: document.getElementById('toolbox')});
     workspace.addChangeListener(function(event) {
